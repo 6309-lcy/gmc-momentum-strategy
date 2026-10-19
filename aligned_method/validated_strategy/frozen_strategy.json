@@ -1,0 +1,15 @@
+{
+  "cutoff": "2026-04-28",
+  "training_start": "2024-04-29",
+  "rule": "momentum",
+  "risk_penalty": 2.0,
+  "gross_budget": 500000000.0,
+  "long_fraction": 0.8,
+  "short_fraction": 0.2,
+  "min_position": 0.05,
+  "max_position": 0.15,
+  "sector_gross_cap": 0.45,
+  "validation_folds": 13,
+  "note": "Historical validation used for model selection; later 2026 outcome is diagnostic",
+  "weights_sha256": "8f621c07eb50e42a84b093e744381d8ceddaa9061d072f6342b286cbc5ccf3bf"
+}
