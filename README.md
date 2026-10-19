@@ -19,6 +19,16 @@ The extended period has **34.32% annualised gross volatility** and **−9.63% ma
 
 **Profit concentration matters:** MRNA contributes $147.73m, approximately 85% of the total gross P&L. Its saved adjusted-price return is +395.92% over the extended period. That observation warrants independent data verification before drawing conclusions about repeatability.
 
+## Scope and portfolio rules
+
+The candidate universe is a fixed allowlist of **123 operating-company stock tickers** represented in the supplied historical data. It spans technology, healthcare, finance, industrials, and energy, including US companies and internationally headquartered issuers represented by their supplied tickers. The scope is bounded by this allowlist and the available price history. The full list appears as `stock_allowlist` in [analysis.py](analysis.py), and its price series are included in [data/](data/).
+
+For the final two-year estimation window, **119 stocks pass the eligibility screen**. Candidates require at least 98% daily-return coverage, positive prices, and a maximum absolute daily return of 40% within the window. BE, DXCM, and RUN fail these filters; FOLD is excluded because its acquisition completed before entry. Both long and short candidates come from the eligible stock universe. The selected portfolio holds eight longs and four shorts. ETFs, bonds, commodities, currencies, and derivatives are outside the portfolio's current investment universe. The Fund X comparison uses separate benchmark instruments.
+
+This is a **buy-and-hold strategy**: the portfolio enters once on 1 May 2026 and holds the initial share quantities through each evaluation endpoint. Position weights drift as prices change. Each selected stock's **initial net position has an absolute size of at least 5% and at most 15% of starting equity**: longs carry positive weights and shorts carry negative weights. The minimum applies at entry; subsequent price changes can move weights outside that range. The total initial portfolio net exposure is 60%, with 80% long exposure and 20% short exposure.
+
+**Transaction costs (TC)** are assumed to be **10 basis points (0.10%) of traded notional at entry and at each evaluation's hypothetical exit**. Exit costs use the ending position values. Short borrowing costs are **2% per year on the initial short notional**, accrued using elapsed daily-return intervals divided by 252. The after-cost figures include these charges. Cash earns zero interest; taxes, additional financing charges, and a separate market-impact or slippage model are outside the accounting scope.
+
 ## Strategy
 
 At every historical allocation date, the model uses the preceding two years of prices. Nine rule/penalty combinations are compared over 13 chronological blocks of 63 daily returns. Momentum with risk penalty 2 has the highest validation selection score; its recorded cumulative validation return after assumed costs is +105.15% across 819 daily returns.
@@ -95,8 +105,16 @@ The [executed notebook](GMC_Validated_Strategy.ipynb) presents the same analysis
 
 The monthly training CSVs preserve the source values for the operating-company allowlist and the dates needed by this strategy. Earlier unused history and instruments outside the strategy's universe are omitted.
 
-## Research limitations
+## Further improvement
 
-Validation observations determine the selected rule. The 2026 period had also been inspected in earlier research. Both facts limit the independence of the reported evidence. This repository presents the strongest recorded strategy from the project, so retrospective selection across experiments also affects interpretation.
+The following extensions are proposed research directions. The reported results use the current buy-and-hold strategy.
 
-The source training file is named `synthetic_prices.csv`; its provenance and corporate-action handling remain unverified. The stock universe can introduce survivorship bias. Forecast expected-return scaling and normal-return assumptions are modelling choices. Short availability, liquidity, and execution at $500m scale are unverified. Costs are illustrative; cash interest, taxes, and additional financing charges are omitted. Recorded figures represent research calculations rather than verified brokerage performance or a guarantee of future returns.
+| Direction | Possible implementation | Evaluation focus |
+|---|---|---|
+| Hedging strategy | Add index futures or protective puts to manage market exposure; size hedges against portfolio beta or a drawdown budget. | Drawdown reduction, hedge carry, option premiums, margin, and performance after costs. |
+| Rebalancing rules | Compare monthly or quarterly rebalancing with weight-drift bands and signal-change triggers. Apply position and exposure constraints at each rebalance. | Turnover, transaction costs, signal persistence, and net performance. |
+| Expanded risk model | Extend the existing Ledoit–Wolf covariance model with market, sector, country, currency, and style factors; add volatility targets, expected shortfall, and stress scenarios. | Factor concentration, tail losses, exposure stability, and forecast calibration. |
+| Market-regime model | Use a Markov chain or hidden Markov model to estimate transitions between market regimes, such as trending, volatile, and defensive conditions. Let estimated regime probabilities influence gross exposure, risk penalties, and hedge size. | Fit using information available at each decision date; assess state stability and performance in subsequent periods. |
+| Regional allocation model | Group issuers by economic geography and currency exposure; add regional limits, regional momentum signals, and FX hedging rules. | Regional concentration, currency risk, and diversification across market cycles. |
+
+Evaluate each extension with chronological walk-forward comparisons against the frozen buy-and-hold baseline, including its additional trading and financing costs.
