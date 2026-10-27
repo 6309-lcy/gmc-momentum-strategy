@@ -1,0 +1,4 @@
+comparison,status,paired_scenarios,mean_difference,median_difference,p05_difference,p95_difference,positive_difference_frequency
+rebalancing,configured,10000.0,-0.002319519417692758,-0.0014973409167445273,-0.021522530966715758,0.013951558003898594,0.4309
+initial risk,unconfigured: risk budget required,,,,,,
+risk portfolio rebalancing,unconfigured: risk budget required,,,,,,

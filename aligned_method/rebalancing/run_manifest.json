@@ -1,0 +1,67 @@
+{
+  "code_revision": "a7d88d12474080f6bd97fc75d215e54c20654eec",
+  "code_revision_note": "Parent revision plus source hashes identify this working-tree implementation.",
+  "configuration": {
+    "training_start": "2024-04-29",
+    "cutoff": "2026-04-28",
+    "evaluation_start": "2026-05-01",
+    "evaluation_end": "2026-08-03",
+    "calendar": "XNYS",
+    "expected_return_intervals": 63,
+    "training_path": "data/rebalancing_training.csv",
+    "evaluation_path": "aligned_method/validated_strategy/diagnostic_prices.csv",
+    "weights_path": "aligned_method/validated_strategy/frozen_weights.csv",
+    "sectors_path": "aligned_method/validated_strategy/initial_portfolio.csv",
+    "benchmark_weights": {
+      "URTH": 0.5,
+      "BNDW": 0.3,
+      "^SPGSCI": 0.2
+    },
+    "risk_budget": null,
+    "rebalance_frequency": "monthly",
+    "transaction_cost_bps": 10.0,
+    "annual_borrow_rate": 0.02,
+    "annualization": 252,
+    "seed": 20260428,
+    "n_paths": 10000,
+    "price_basis": "adjusted_close",
+    "evaluation_note": "Idealized close execution diagnostic; this previously explored period is not an untouched out-of-sample test.",
+    "training_provenance": "Stock columns exported from repository monthly training CSVs, restricted to 2024-04-29 through 2026-04-28. Parent synthetic_prices.csv has none of URTH, BNDW or ^SPGSCI. Those three benchmark columns were retrieved from Yahoo Finance via yfinance Adj Close (auto_adjust=false), start=2024-04-29, exclusive end=2026-04-29, retrieved 2026-10-27. All 501 XNYS training sessions are complete with no filling or substitutes. Stock source provenance and corporate-action adjustment conventions are not independently verified; Yahoo adjusted history is a retrieval-time snapshot and may reflect later corporate-action revisions.",
+    "capital": 500000000.0,
+    "trading_cost": 0.001,
+    "borrow_rate": 0.02
+  },
+  "policy_sha256": "b56a4c06f8e159cddb78ac7d61d49713c6a89b2775b3548cbee8902d1e404b71",
+  "data": {
+    "C:\\Users\\lcy20\\OneDrive\\\u6587\u4ef6\\Past Paper\\Der Pricing\\Projects\\GMC\\gmc-momentum-strategy\\data\\rebalancing_training.csv": "afcae98491588ab828488d15a0185186c629d81cd3de4514f3ddd59ff7587f67",
+    "C:\\Users\\lcy20\\OneDrive\\\u6587\u4ef6\\Past Paper\\Der Pricing\\Projects\\GMC\\gmc-momentum-strategy\\aligned_method\\validated_strategy\\diagnostic_prices.csv": "52bf75097b2601f9c70b6a30041e124a0104938619e327502dbc974a0401274a",
+    "C:\\Users\\lcy20\\OneDrive\\\u6587\u4ef6\\Past Paper\\Der Pricing\\Projects\\GMC\\gmc-momentum-strategy\\aligned_method\\validated_strategy\\frozen_weights.csv": "8f621c07eb50e42a84b093e744381d8ceddaa9061d072f6342b286cbc5ccf3bf",
+    "C:\\Users\\lcy20\\OneDrive\\\u6587\u4ef6\\Past Paper\\Der Pricing\\Projects\\GMC\\gmc-momentum-strategy\\aligned_method\\validated_strategy\\initial_portfolio.csv": "ad4aa21915d4a7fedca1f09cd080d45ca0b3359ec344a9361dda97ce0fff313f",
+    "data\\rebalancing_benchmark_training.csv": "68bb893b1412f46c4f8735127b34307e0512b490e6a586ac64a45d1e2737f2f3"
+  },
+  "source_sha256": {
+    "rebalancing\\__init__.py": "d8dcfb7d1cad3de0482037b287c2684244decf1a74c48160c4996c8d07014871",
+    "rebalancing\\accounting.py": "71778d51ebb4d4dee702fe96037c58e3ad9a2eaa441d69fd42de2052519ea573",
+    "rebalancing\\data_access.py": "493c74427c97329e7b4edba12a91e0bab08fca866abef089cc06edef3824ab18",
+    "rebalancing\\evaluation.py": "2897c3b07839a72e69cd8c906f5b847cf6e9b9e48c0f7908aa8ec8b6217b89ab",
+    "rebalancing\\execution.py": "b9844c6ef9c91f4fa7457c67f29190347a8d3a237c4a619db3432a43dc132881",
+    "rebalancing\\policies.py": "1c4446002f51d999f7bdb97f3ca523ffff35e33cbe77c01959d885ad750e506f",
+    "rebalancing\\reporting.py": "2130028581379ae305f4670ebd3e5d10383d0925e665caeac44d355b567293db",
+    "rebalancing\\risk_model.py": "c8e04b66f732585d41d5847ccd6bf452b58f1d5735698c89b5a5f2667873fb34",
+    "rebalancing\\simulation.py": "5c7386823f43dcfb3d29bdcd71523ba5efdb74e9ce9f195008b6498559a2a920",
+    "run_rebalancing.py": "6d4887da354f0e203f88076b13a61fc4a2b2a9988976e0692bf5cf9b3fcf2237"
+  },
+  "dependencies": {
+    "numpy": "2.4.4",
+    "pandas": "3.0.3",
+    "scikit-learn": "1.9.1",
+    "exchange-calendars": "4.13.2",
+    "matplotlib": "3.10.9",
+    "nbformat": "5.11.0",
+    "nbclient": "0.11.0"
+  },
+  "random_seed": 20260428,
+  "execution": "idealized adjusted-close fills; preceding close monthly sizing; fractional synthetic units",
+  "sample_indices_sha256": "5202c77c93a4cae6222d4c0ea6341406d0cf68f7644c1faa0467e88c8578a24e",
+  "training_return_observations": 500
+}

@@ -105,6 +105,19 @@ The [executed notebook](GMC_Validated_Strategy.ipynb) presents the same analysis
 
 The monthly training CSVs preserve the source values for the operating-company allowlist and the dates needed by this strategy. Earlier unused history and instruments outside the strategy's universe are omitted.
 
+## Rebalancing and initial risk research
+
+The `with-rebalancing` branch adds [GMC_Rebalancing_Analysis.ipynb](GMC_Rebalancing_Analysis.ipynb), a shared accounting engine, pre-cutoff risk diagnostics, monthly frozen-target policies, 10,000 paired joint-bootstrap scenarios, and historical replay. The original analysis and published outputs remain available.
+
+```bash
+python -m unittest discover -s tests -v
+python run_rebalancing.py
+```
+
+Open the executed notebook for the standalone analysis, or read [the comparison report](aligned_method/rebalancing/report.md). [REBALANCING_DESIGN.md](REBALANCING_DESIGN.md) documents the contracts. Outputs include orders, trades, costs, daily NAV, attribution, paired comparisons, and a data/source-hash manifest.
+
+Execution uses an **idealized adjusted-close diagnostic** with preceding-close sizing for the June 1 and July 1 trades. Initial entry is May 1; hypothetical liquidation is August 3. The fixed XNYS calendar yields 63 return intervals. P2/P3 remain explicitly unconfigured until a justified predeclared risk budget is set in `rebalancing/config.json`. All five policy IDs appear in reports. The comparison uses illustrative financing and fees and a previously explored historical period.
+
 ## Further improvement
 
 The following extensions are proposed research directions. The reported results use the current buy-and-hold strategy.
