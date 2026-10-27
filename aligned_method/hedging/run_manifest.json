@@ -1,0 +1,39 @@
+{
+  "code_revision": "3a346957dbec46ea864564da7cbd76eade981ef7",
+  "source_sha256": {
+    "hedging\\accounting.py": "89d01aabd82aae083278f9bddbf40746a364020388afbf02e8fd82ffe23d5cce",
+    "hedging\\data_access.py": "4704d9c506320b268bedc0c470753e1d337ed6b5885dda21c0c8871769261838",
+    "hedging\\model.py": "f91171a891a79f3e67888732bbfad478e735e9a30f300611fcb32f16c319cc57",
+    "hedging\\reporting.py": "43e3a7cae3733bd2e3e460513fe897cd976946050aa77731e25856085d915d62",
+    "hedging\\__init__.py": "21de6ac644c6b642625ecbe027cfe64c8ce1bdc76902c31e906ef3bc180e47f0",
+    "run_hedging.py": "1e400a0dae4ea74c166c844ed0d9690ef49b68cad33dfde458bfa4b0d75c4ab6"
+  },
+  "data_sha256": {
+    "data\\hedging\\training_instruments.csv": "efcb96bdbbd2bb1ef4b4fb474a08c6b44f6ceb08e67facf5e3d5b1a3c0c0d6eb",
+    "data\\hedging\\evaluation_instruments.csv": "399f0b5e5c3b12a27afc4faf15dea4c00f0953b96790a32e4dced06f4d7956b9",
+    "data\\rebalancing_training.csv": "afcae98491588ab828488d15a0185186c629d81cd3de4514f3ddd59ff7587f67",
+    "aligned_method\\validated_strategy\\diagnostic_prices.csv": "52bf75097b2601f9c70b6a30041e124a0104938619e327502dbc974a0401274a"
+  },
+  "frozen_policy_sha256": "74cc2284a07d922494209da17a74067e8d5a6e88c1ae4b2bd4f8bcf411e74ea2",
+  "scenario_indices_sha256": "5202c77c93a4cae6222d4c0ea6341406d0cf68f7644c1faa0467e88c8578a24e",
+  "config": {
+    "stock_capital": 500000000,
+    "overlay_capital": 200000000,
+    "stock_policy": "buy_and_hold",
+    "cutoff": "2026-04-28",
+    "evaluation_start": "2026-05-01",
+    "evaluation_end": "2026-08-03",
+    "n_paths": 10000,
+    "seed": 20260428,
+    "block_length": 13,
+    "decay": 0.94,
+    "cash_buffer": 0.02,
+    "trading_cost": 0.001,
+    "stock_borrow_rate": 0.02,
+    "instrument_policy": "SGOV reserve; SH cash-funded daily inverse ETF; SPY signal only",
+    "execution": "adjusted-close diagnostic; previous-close decisions and fixed orders",
+    "model_status": "predeclared exploratory risk-state rules, not independently validated optimal parameters",
+    "insufficient_cash_rule": "reject entire transition; keep holdings; retry next session with newly observed prior-close information"
+  },
+  "data_note": "Yahoo auto_adjust=True snapshots retrieved 2026-10-27; original stock provenance remains unverified"
+}

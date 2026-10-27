@@ -1,0 +1,19 @@
+{
+  "stock_capital": 500000000,
+  "overlay_capital": 200000000,
+  "stock_policy": "buy_and_hold",
+  "cutoff": "2026-04-28",
+  "evaluation_start": "2026-05-01",
+  "evaluation_end": "2026-08-03",
+  "n_paths": 10000,
+  "seed": 20260428,
+  "block_length": 13,
+  "decay": 0.94,
+  "cash_buffer": 0.02,
+  "trading_cost": 0.001,
+  "stock_borrow_rate": 0.02,
+  "instrument_policy": "SGOV reserve; SH cash-funded daily inverse ETF; SPY signal only",
+  "execution": "adjusted-close diagnostic; previous-close decisions and fixed orders",
+  "model_status": "predeclared exploratory risk-state rules, not independently validated optimal parameters",
+  "insufficient_cash_rule": "reject entire transition; keep holdings; retry next session with newly observed prior-close information"
+}

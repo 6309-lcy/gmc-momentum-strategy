@@ -118,6 +118,12 @@ Open the executed notebook for the standalone analysis, or read [the comparison 
 
 Execution uses an **idealized adjusted-close diagnostic** with preceding-close sizing for the June 1 and July 1 trades. Initial entry is May 1; hypothetical liquidation is August 3. The fixed XNYS calendar yields 63 return intervals. P2/P3 remain explicitly unconfigured until a justified predeclared risk budget is set in `rebalancing/config.json`. All nine policy IDs appear in reports. P4 adds daily fixed-target trading and P5 adds five-session trading. P6/P7 support explicitly configured risk- and drawdown-triggered reductions. Each simulated path updates its own risk estimate using completed returns, initialized from pre-cutoff Ledoit–Wolf covariance. The notebook includes price and volatility fans for all 12 stocks plus portfolio NAV/risk/drawdown plots. The comparison uses illustrative financing and fees and a previously explored historical period.
 
+## 獨立避險研究（hedging 分支）
+
+[GMC_Hedging_Analysis.ipynb](GMC_Hedging_Analysis.ipynb) 與 [HEDGING_DESIGN.md](HEDGING_DESIGN.md) 將避險任務獨立管理。原股票帳戶保留 5 億美元配置；新增 2 億美元在 SGOV 儲備與 SH 反向 ETF 之間，依只使用過去資訊的雙狀態風險模型切換。帳戶不交易期權，SH 基金內使用衍生工具。模型、工具及門檻屬回顧性探索研究假設。
+
+執行 `python run_hedging.py` 重建 10,000 個共同情境、歷史診斷、帳戶明細與圖表。結果存於 [aligned_method/hedging/report.md](aligned_method/hedging/report.md)。此任務不修改原再平衡策略或其輸出。
+
 ## Further improvement
 
 The following extensions are proposed research directions. The reported results use the current buy-and-hold strategy.
