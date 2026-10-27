@@ -1,5 +1,7 @@
 # GMC Momentum Portfolio Research
 
+**本分支：原動量組合＋再平衡研究。** 請見下方 [再平衡機制與模擬圖表](#再平衡機制與模擬圖表)，包含每日、每週及每月規則、事件旗標、價格與風險路徑。前半部保留原始買入持有研究。
+
 A stocks-only long/short portfolio built from chronological strategy validation, constrained optimisation, and Monte Carlo forecasts. This repository contains the selected **momentum strategy with risk penalty 2**, its executable analysis, frozen allocation, and supporting results.
 
 **Recorded diagnostic return, 1 May–9 October 2026: +34.71% gross and +34.29% after illustrative costs**, compared with **+2.63%** for the Fund X proxy. Starting equity is $500 million. These are modelled returns from saved adjusted-price data. The evaluation period had already been explored during research, and the input data's provenance and corporate-action adjustments have not been independently verified.
@@ -105,18 +107,73 @@ The [executed notebook](GMC_Validated_Strategy.ipynb) presents the same analysis
 
 The monthly training CSVs preserve the source values for the operating-company allowlist and the dates needed by this strategy. Earlier unused history and instruments outside the strategy's universe are omitted.
 
-## Rebalancing and initial risk research
+## 再平衡機制與模擬圖表
 
-The `with-rebalancing` branch adds [GMC_Rebalancing_Analysis.ipynb](GMC_Rebalancing_Analysis.ipynb), a shared accounting engine, pre-cutoff risk diagnostics, monthly frozen-target policies, 10,000 paired joint-bootstrap scenarios, and historical replay. The original analysis and published outputs remain available.
+本 `with-rebalancing` 分支在原動量組合上加入每月、每日及每五個交易日再平衡。保留原本 12 隻股票、多空方向及相對目標權重，每次調整持倉數量以恢復凍結目標。原始買入持有研究保留在 `aligned_method/validated_strategy/`。
+
+### 何時再平衡？
+
+| 策略 | 規則 | 狀態 |
+|---|---|---|
+| P0 買入持有 | 建倉後固定數量，權重隨價格變動 | 已執行，曲線無旗標 |
+| P1 每月 | 每月第一個交易日；本期為 6 月 1 日、7 月 1 日 | 已執行 |
+| P4 每日 | 每日前收市後計算，下一交易日執行 | 已執行 |
+| P5 每五個交易日 | 觀察值 1–5 完成後，於觀察日 6 執行，之後每五日一次 | 已執行 |
+| P2／P3 初始風險縮放 | 預先縮放曝險，搭配買入持有／每月再平衡 | 待設定有依據的風險預算 |
+| P6 風險觸發 | 前一日估計波動率超標時降低曝險 | 引擎已實作，正式門檻未設定 |
+| P7 虧損觸發 | 前一日回撤超標時一次性減倉 | 引擎已實作，門檻與比例未設定 |
+
+### 前一日決定，下一日固定數量成交
+
+1. 第 t−1 日收市後，讀取已完成的價格、持股、現金與淨資產值（NAV）。
+2. 計算目標數量：`原目標權重 × 前日 NAV ÷ 前日價格`，扣除現有持倉後，將交易數量四捨五入至整個合成單位。
+3. 第 t 日按固定數量成交，扣除費用，記錄成交後權重偏差。
+4. 第 t 日資料完成後更新風險，供下一日決策使用。每條模擬路徑各自維護價格、持倉、現金及風險。
+
+建倉日為 2026 年 5 月 1 日，終點為 8 月 3 日，共 64 個收市觀察值及 63 段報酬。終點優先計算假設清倉，停止新的再平衡。現有資料支持**理想化調整後收市價診斷**：初始使用分數合成單位，之後固定訂單於下一交易日調整後收市價成交。可執行開盤及原始股數仍需額外資料驗證。
+
+### 歷史績效與再平衡旗標
+
+![歷史 NAV 與實際再平衡旗標](aligned_method/rebalancing/figures/historical_nav.svg)
+
+**旗標位於各策略自己的曲線上，代表實際非零再平衡成交日。買入持有曲線沒有旗標。** 初始建倉及終點清倉均不加旗標。
+
+| 策略 | 淨報酬（含假設終點清倉費） | 最大回撤 |
+|---|---:|---:|
+| Fund X 代理基準 | +0.23% | −4.51% |
+| P0 買入持有 | +4.28% | −8.91% |
+| P1 每月 | +7.88% | −6.33% |
+| P4 每日 | +4.64% | −6.71% |
+| P5 每五個交易日 | +5.08% | −6.88% |
+
+起始資本 5 億美元。交易費為實際成交額的 10 bps，借券費以先前收市空倉市值按 2% 年率及實際日數／365 累計，現金利息為零。曲線為每日市值計價 NAV；表格淨報酬另含假設終點清倉費。
+
+### 組合價格、風險與回撤情境
+
+![組合 NAV、估計波動率及回撤模擬與旗標](aligned_method/rebalancing/figures/portfolio_simulation.svg)
+
+10,000 條共同區塊抽樣路徑使用相同歷史日期區塊，保留股票與基準的共同變動，各策略接收完全相同市場路徑。模擬旗標代表凍結的預定再平衡執行日，標在中位數及各範例路徑；P0 買入持有沒有旗標。
+
+陰影為逐日第 5–95 百分位，中間曲線為中位數，細線為預先指定的情境 0–4。百分位曲線是逐日分布摘要。風險由截止日前 Ledoit–Wolf 協方差初始化，之後使用已完成報酬，以 0.94 衰減的 EWMA 第二動差更新；組合風險反映當時持倉權重及相關性。
+
+### 全部 12 隻股票的價格與風險路徑
+
+![12 隻股票的共同價格模擬](aligned_method/rebalancing/figures/asset_price_simulation.svg)
+
+![12 隻股票的估計年化波動率模擬](aligned_method/rebalancing/figures/asset_risk_simulation.svg)
+
+個股圖描述所有策略共用的市場情境，因此不加組合再平衡旗標。估計波動率由各路徑已完成的報酬推導，決策不讀取未來價格。
+
+### 重現與限制
 
 ```bash
 python -m unittest discover -s tests -v
 python run_rebalancing.py
 ```
 
-Open the executed notebook for the standalone analysis, or read [the comparison report](aligned_method/rebalancing/report.md). [REBALANCING_DESIGN.md](REBALANCING_DESIGN.md) documents the contracts. Outputs include orders, trades, costs, daily NAV, attribution, paired comparisons, and a data/source-hash manifest.
+完整分析見 [已執行 notebook](GMC_Rebalancing_Analysis.ipynb)、[比較報告](aligned_method/rebalancing/report.md) 及 [設計文件](REBALANCING_DESIGN.md)。[輸出目錄](aligned_method/rebalancing/) 包含帳戶、訂單、成交、成本、持倉與來源雜湊。
 
-Execution uses an **idealized adjusted-close diagnostic** with preceding-close sizing for the June 1 and July 1 trades. Initial entry is May 1; hypothetical liquidation is August 3. The fixed XNYS calendar yields 63 return intervals. P2/P3 remain explicitly unconfigured until a justified predeclared risk budget is set in `rebalancing/config.json`. All nine policy IDs appear in reports. P4 adds daily fixed-target trading and P5 adds five-session trading. P6/P7 support explicitly configured risk- and drawdown-triggered reductions. Each simulated path updates its own risk estimate using completed returns, initialized from pre-cutoff Ledoit–Wolf covariance. The notebook includes price and volatility fans for all 12 stocks plus portfolio NAV/risk/drawdown plots. The comparison uses illustrative financing and fees and a previously explored historical period.
+本期價格先前已被研究，結果屬歷史診斷；費用與融資為示意假設，原價格來源及公司行動未獨立驗證。歷史抽樣勝出頻率代表指定樣本與假設下的情境比例。選股與原始目標保持凍結。
 
 ## Further improvement
 
