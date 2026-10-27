@@ -116,7 +116,7 @@ python run_rebalancing.py
 
 Open the executed notebook for the standalone analysis, or read [the comparison report](aligned_method/rebalancing/report.md). [REBALANCING_DESIGN.md](REBALANCING_DESIGN.md) documents the contracts. Outputs include orders, trades, costs, daily NAV, attribution, paired comparisons, and a data/source-hash manifest.
 
-Execution uses an **idealized adjusted-close diagnostic** with preceding-close sizing for the June 1 and July 1 trades. Initial entry is May 1; hypothetical liquidation is August 3. The fixed XNYS calendar yields 63 return intervals. P2/P3 remain explicitly unconfigured until a justified predeclared risk budget is set in `rebalancing/config.json`. All five policy IDs appear in reports. The comparison uses illustrative financing and fees and a previously explored historical period.
+Execution uses an **idealized adjusted-close diagnostic** with preceding-close sizing for the June 1 and July 1 trades. Initial entry is May 1; hypothetical liquidation is August 3. The fixed XNYS calendar yields 63 return intervals. P2/P3 remain explicitly unconfigured until a justified predeclared risk budget is set in `rebalancing/config.json`. All nine policy IDs appear in reports. P4 adds daily fixed-target trading and P5 adds five-session trading. P6/P7 support explicitly configured risk- and drawdown-triggered reductions. Each simulated path updates its own risk estimate using completed returns, initialized from pre-cutoff Ledoit–Wolf covariance. The notebook includes price and volatility fans for all 12 stocks plus portfolio NAV/risk/drawdown plots. The comparison uses illustrative financing and fees and a previously explored historical period.
 
 ## Further improvement
 

@@ -1,4 +1,8 @@
 comparison,status,paired_scenarios,mean_difference,median_difference,p05_difference,p95_difference,positive_difference_frequency
 rebalancing,configured,10000.0,-0.002319519417692758,-0.0014973409167445273,-0.021522530966715758,0.013951558003898594,0.4309
-initial risk,unconfigured: risk budget required,,,,,,
-risk portfolio rebalancing,unconfigured: risk budget required,,,,,,
+initial risk,unconfigured: initial risk budget required,,,,,,
+risk portfolio rebalancing,unconfigured: initial risk budget required,,,,,,
+daily rebalancing,configured,10000.0,-0.002830178511712811,-0.0017129151962724243,-0.026534901518518637,0.017224437759774357,0.4302
+weekly rebalancing,configured,10000.0,-0.0027160677433155636,-0.001388666086981627,-0.026481135029184876,0.01691650831492243,0.4427
+risk-triggered reduction,unconfigured: dynamic risk budget required,,,,,,
+loss-triggered reduction,unconfigured: drawdown threshold and reduction factor required,,,,,,

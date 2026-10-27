@@ -33,9 +33,11 @@ def write_report(out, config, policy, evaluation, summary, pairs, reconciliation
     ax.legend(); ax.grid(alpha=.2); fig.autofmt_xdate(); fig.tight_layout()
     fig.savefig(figure_dir/'historical_nav.svg', metadata={'Date': None})
     plt.close(fig)
+    svg = figure_dir/'historical_nav.svg'
+    svg.write_text('\n'.join(line.rstrip() for line in svg.read_text(encoding='utf-8').splitlines())+'\n', encoding='utf-8')
     text = f'''# Portfolio rebalancing and initial risk positioning
 
-This historical diagnostic compares the frozen momentum portfolio with monthly fixed-target rebalancing. Starting equity is ${config['capital']:,.0f}. Entry uses the 1 May 2026 adjusted close; the endpoint uses the 3 August 2026 adjusted close. There are {len(policy['session_dates'])} valuation observations and {len(policy['session_dates'])-1} close-to-close return intervals on the fixed XNYS calendar.
+This historical diagnostic compares the frozen momentum portfolio with monthly, daily, and five-session fixed-target rebalancing, with configurable risk- and loss-triggered exposure reductions. Starting equity is ${config['capital']:,.0f}. Entry uses the 1 May 2026 adjusted close; the endpoint uses the 3 August 2026 adjusted close. There are {len(policy['session_dates'])} valuation observations and {len(policy['session_dates'])-1} close-to-close return intervals on the fixed XNYS calendar.
 
 The monthly execution dates are {', '.join(policy['rebalance_dates'])}. Orders use the preceding session's prices and NAV. Fixed quantities fill at the next scheduled adjusted close. The first portfolio allocation is a same-close idealization. Fractional quantities represent synthetic dividend-adjusted units. These results are idealized close-price diagnostics. Verified opening execution requires a separate coherent open, close, split, and dividend dataset.
 
@@ -47,7 +49,7 @@ Primary net returns include entry, actual rebalance trades, daily outstanding-sh
 
 ![Historical NAV](figures/historical_nav.svg)
 
-P2 and P3 are relaxed-exposure variants. Their default status is unconfigured because no independently justified volatility budget has been supplied. The pipeline supports a positive predeclared `risk_budget` in the configuration; it freezes the scale before simulation and historical replay. All five predefined strategy IDs remain visible in the output tables.
+P2 and P3 are relaxed-exposure variants. Their default status is unconfigured because no independently justified volatility budget has been supplied. The pipeline supports a positive predeclared `risk_budget` in the configuration; it freezes the scale before simulation and historical replay. All nine predefined strategy IDs remain visible in the output tables. P4 rebalances daily using the preceding close; P5 rebalances after each five completed observations (first fill at observation 6, then 11, 16, and so on). P6 checks previous-close estimated portfolio volatility against `dynamic_risk_budget` and ratchets target exposure downward; P7 reduces exposure once after previous-close drawdown breaches `loss_drawdown_threshold`, using `loss_reduction_factor`, with no re-entry. P6/P7 remain unconfigured until their respective thresholds and responses are explicitly set before evaluation.
 
 ## Paired historical-bootstrap scenarios
 
@@ -60,6 +62,20 @@ The outperformance frequency is the proportion of scenarios outperforming Fund X
 {pairs.to_markdown(index=False, floatfmt='.6f')}
 
 The actual result's percentile uses the same strategy's simulated net-liquidation-return distribution. The simulated market paths start at each asset's last pre-cutoff adjusted close and use the same execution and accounting engine as the historical replay. This preserves an asset-specific unit scale for rounding without using evaluation prices.
+
+## Price and risk simulation paths
+
+![All 12 asset price simulations](figures/asset_price_simulation.svg)
+
+![All 12 asset risk simulations](figures/asset_risk_simulation.svg)
+
+![Portfolio NAV, volatility and drawdown simulations](figures/portfolio_simulation.svg)
+
+The risk model starts from the pre-cutoff Ledoit–Wolf covariance. After each completed simulated return, it updates the annualized zero-mean second moment using EWMA decay {config.get('risk_ewma_decay', .94)}. Every portfolio uses its own signed, drifting holdings and NAV with that scenario's covariance to calculate estimated volatility. This decay is a declared modelling assumption. Estimated volatility is derived from price history; the joint bootstrap supplies the stochastic price paths.
+
+A decision at observation t uses covariance, prices, holdings, NAV and drawdown through t−1. Day 2 therefore uses day 1 information. Weekly execution at observation 6 uses the five observed closing levels through observation 5; those five levels contain four new return intervals. Earlier training history initializes risk. The terminal date suppresses new rebalancing.
+
+Shaded areas show pointwise 5th–95th percentiles across all 10,000 scenarios; their boundaries are not individual tradable paths. Thin lines show predefined scenario IDs 0–4. NAV and risk bands are marked-to-market diagnostics; terminal-return tables include hypothetical liquidation. Failure counts are retained, and portfolio bands are suppressed if any financing outcome is undefined.
 
 ## Published baseline reconciliation
 
@@ -92,5 +108,5 @@ def build_manifest(config, policy_path, data_paths, extra):
             'data': {str(p): sha256(p) for p in data_paths},
             'source_sha256': {str(p): sha256(p) for p in sorted(Path('rebalancing').glob('*.py'))} | {'run_rebalancing.py': sha256('run_rebalancing.py')},
             'dependencies': dependencies, 'random_seed': config['seed'],
-            'execution': 'idealized adjusted-close fills; preceding close monthly sizing; fractional synthetic units',
+            'execution': 'idealized adjusted-close fills; preceding close policy decisions and sizing; fractional synthetic initial units',
             **extra}

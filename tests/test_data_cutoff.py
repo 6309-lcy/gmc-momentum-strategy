@@ -13,6 +13,16 @@ from rebalancing.data_access import load_weights
 
 
 class DataCutoffTests(unittest.TestCase):
+    def test_dynamic_configuration_validation(self):
+        config = load_config()
+        for updates in [{'risk_ewma_decay':1.}, {'dynamic_risk_budget':-.1},
+                        {'loss_drawdown_threshold':.1},
+                        {'loss_drawdown_threshold':.1,'loss_reduction_factor':1.}]:
+            changed = dict(config, **updates)
+            with self.assertRaises(ValueError):
+                from rebalancing.data_access import validate_config
+                validate_config(changed)
+
     def setUp(self):
         self.config = load_config()
         with warnings.catch_warnings():

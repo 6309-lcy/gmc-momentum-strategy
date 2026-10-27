@@ -2,25 +2,33 @@
 import numpy as np
 import pandas as pd
 from .accounting import run_path
-from .simulation import benchmark_nav, strategies, path_metrics
+from .simulation import benchmark_nav, strategies, path_metrics, decision_policy, unconfigured_reason
+from .adaptive import causal_covariances
 
 
-def evaluate(prices, policy, config, samples=None):
+def evaluate(prices, policy, config, samples=None, training=None):
     capital = config['capital']
+    covariances = None
+    if training is not None:
+        stocks = list(policy['weights'])
+        covariances = causal_covariances(training[stocks], prices[stocks], config.get('risk_ewma_decay', .94))
+    elif any(policy.get(key) is not None for key in ['dynamic_risk_budget', 'loss_drawdown_threshold']):
+        raise ValueError('Adaptive evaluation requires pre-cutoff training history')
     benchmark = benchmark_nav(prices, capital)
     navs = [pd.DataFrame({'date': prices.index, 'strategy': 'B0', 'nav': benchmark.values,
                          'gross_nav': benchmark.values, 'liquidation_nav': benchmark.values})]
     metrics = [{'strategy': 'B0', 'status': 'proxy benchmark',
                 **path_metrics(benchmark, capital), 'gross_return': benchmark.iloc[-1]/capital-1,
                 'mtm_net_return': benchmark.iloc[-1]/capital-1}]
-    outputs = {key: [] for key in ['orders', 'trades', 'costs', 'attribution', 'daily_positions']}
+    outputs = {key: [] for key in ['orders', 'trades', 'costs', 'attribution', 'daily_positions', 'decision_log', 'risk_history']}
     for name, specification in strategies(policy).items():
         if specification is None:
-            metrics.append({'strategy': name, 'status': 'unconfigured: risk budget required'})
+            metrics.append({'strategy': name, 'status': unconfigured_reason(name)})
             continue
         weights, schedule = specification
         result = run_path(prices[weights.index], weights, schedule, capital=capital,
-                          trading_cost=config['trading_cost'], borrow_rate=config['borrow_rate'])
+                          trading_cost=config['trading_cost'], borrow_rate=config['borrow_rate'],
+                          decision_policy=decision_policy(name, policy), risk_covariances=covariances)
         nav = result['nav']
         liquidated = nav['nav'].copy()
         liquidated.iloc[-1] = nav['liquidation_nav'].iloc[-1]

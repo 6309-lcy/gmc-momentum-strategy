@@ -29,6 +29,17 @@ class PolicyFreezeTests(unittest.TestCase):
         self.assertNotIn('2026-08-03', frozen['rebalance_dates'])
         self.assertTrue(verify_freeze(frozen))
 
+    def test_daily_and_weekly_schedules_are_causal_and_frozen(self):
+        frozen = freeze_policy(self.config, self.training)
+        dates = frozen['session_dates']
+        self.assertEqual(frozen['daily_dates'], dates[1:-1])
+        self.assertEqual(frozen['weekly_dates'], dates[5:-1:5])
+        self.assertEqual(frozen['weekly_dates'][0], dates[5])
+        self.assertNotIn(dates[-1], frozen['daily_dates'])
+        self.assertIsNone(frozen['dynamic_risk_budget'])
+        self.assertIsNone(frozen['loss_drawdown_threshold'])
+        self.assertEqual(frozen['risk_estimator']['decay'], .94)
+
     def test_input_objects_unchanged_and_detached(self):
         config_before = deepcopy(self.config)
         training_before = self.training.copy(deep=True)

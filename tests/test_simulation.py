@@ -41,6 +41,26 @@ class SimulationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_config(config)
 
+    def test_integrated_daily_weekly_and_trigger_scenarios(self):
+        import tempfile
+        from rebalancing.data_access import load_config, load_training
+        from rebalancing.policies import freeze_policy
+        from rebalancing.simulation import simulate
+        config = load_config()
+        config.update(capital=5e8, trading_cost=.001, borrow_rate=.02, n_paths=2,
+                      dynamic_risk_budget=.12, loss_drawdown_threshold=.05, loss_reduction_factor=.5)
+        training = load_training(config)
+        policy = freeze_policy(config, training)
+        with tempfile.TemporaryDirectory(prefix='gmc-test-') as temporary:
+            config['output_dir'] = temporary
+            samples, summary, metadata = simulate(training, policy, config)
+            self.assertFalse(samples.status.eq('execution_failed').any())
+            self.assertEqual(set(samples.strategy), {'B0','P0','P1','P4','P5','P6','P7'})
+            from pathlib import Path
+            bands = pd.read_csv(Path(temporary)/'simulation_path_quantiles.csv')
+            self.assertTrue(np.isfinite(bands[['q05','q50','q95']]).all().all())
+            self.assertTrue((bands.loc[bands.metric=='drawdown','q95'] <= 0).all())
+
     def test_daily_benchmark_rebalances(self):
         p = pd.DataFrame({'^SPGSCI':[100,110,99], 'URTH':[100,100,100], 'BNDW':[100,100,100]})
         self.assertAlmostEqual(benchmark_nav(p, 100).iloc[-1],100*1.02*.98)

@@ -9,7 +9,11 @@
   "evaluation_path": "aligned_method/validated_strategy/diagnostic_prices.csv",
   "weights_path": "aligned_method/validated_strategy/frozen_weights.csv",
   "sectors_path": "aligned_method/validated_strategy/initial_portfolio.csv",
-  "benchmark_weights": {"URTH": 0.5, "BNDW": 0.3, "^SPGSCI": 0.2},
+  "benchmark_weights": {
+    "URTH": 0.5,
+    "BNDW": 0.3,
+    "^SPGSCI": 0.2
+  },
   "risk_budget": null,
   "rebalance_frequency": "monthly",
   "transaction_cost_bps": 10.0,
@@ -19,5 +23,9 @@
   "n_paths": 10000,
   "price_basis": "adjusted_close",
   "evaluation_note": "Idealized close execution diagnostic; this previously explored period is not an untouched out-of-sample test.",
-  "training_provenance": "Stock columns exported from repository monthly training CSVs, restricted to 2024-04-29 through 2026-04-28. Parent synthetic_prices.csv has none of URTH, BNDW or ^SPGSCI. Those three benchmark columns were retrieved from Yahoo Finance via yfinance Adj Close (auto_adjust=false), start=2024-04-29, exclusive end=2026-04-29, retrieved 2026-10-27. All 501 XNYS training sessions are complete with no filling or substitutes. Stock source provenance and corporate-action adjustment conventions are not independently verified; Yahoo adjusted history is a retrieval-time snapshot and may reflect later corporate-action revisions."
+  "training_provenance": "Stock columns exported from repository monthly training CSVs, restricted to 2024-04-29 through 2026-04-28. Parent synthetic_prices.csv has none of URTH, BNDW or ^SPGSCI. Those three benchmark columns were retrieved from Yahoo Finance via yfinance Adj Close (auto_adjust=false), start=2024-04-29, exclusive end=2026-04-29, retrieved 2026-10-27. All 501 XNYS training sessions are complete with no filling or substitutes. Stock source provenance and corporate-action adjustment conventions are not independently verified; Yahoo adjusted history is a retrieval-time snapshot and may reflect later corporate-action revisions.",
+  "risk_ewma_decay": 0.94,
+  "dynamic_risk_budget": null,
+  "loss_drawdown_threshold": null,
+  "loss_reduction_factor": null
 }

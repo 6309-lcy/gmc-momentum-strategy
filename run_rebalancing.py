@@ -36,7 +36,9 @@ def main(config_path=None):
     pairs = paired_comparisons(samples)
     verify_freeze(policy)
     prices = load_evaluation(config)
-    evaluation = evaluate(prices, policy, config, samples)
+    evaluation = evaluate(prices, policy, config, samples, training=training)
+    from rebalancing.path_plots import write_path_plots
+    write_path_plots(training, policy, config, out)
     reconciliation = reconcile_baseline(prices, policy, config, evaluation)
     data_paths = [resolve_path(config, key) for key in ['training_path', 'evaluation_path', 'weights_path', 'sectors_path']]
     data_paths += [Path('data/rebalancing_benchmark_training.csv'), Path('data/rebalancing_training_provenance.json')]
@@ -50,7 +52,8 @@ def main(config_path=None):
         'The initial allocation uses fractional synthetic units; subsequent monthly quantity changes are rounded to the nearest whole synthetic unit. These adjusted units cannot be interpreted as exchange-executable shares.',
         'Missing or nonpositive prices cause a hard failure. No backfilling or assumed missing-price fills occur. Insufficient collateral cash or nonpositive NAV rejects a scenario and is explicitly counted.',
         'Benchmark pre-cutoff adjusted prices were fetched separately from Yahoo Finance and are archived with hashes. The joint panel combines this source with the original stock training panel. Source revisions and convention differences can affect the result.',
-        'The risk budget is unconfigured by default. P2/P3 remain visible as unconfigured relaxed-exposure variants. The pre-cutoff diagnostics support choosing a budget in a separate prospective research decision.',
+        'The initial risk budget is unconfigured by default. P2/P3 remain visible as unconfigured relaxed-exposure variants. Dynamic volatility and drawdown triggers P6/P7 also require explicit thresholds and responses. Their supported engines are exercised by tests; configured production strategies are reported consistently.',
+        'Daily and five-session policies use previous-close information. Evolving EWMA risk is estimated from each path independently with pre-cutoff covariance initialization; the 0.94 decay is a declared assumption. Price and risk bands summarize pointwise scenario distributions.',
         'The 2026 evaluation period has been explored before this implementation. This is a historical diagnostic comparison, with illustrative costs and financing constraints.'
     ]
     write_report(out, config, policy, evaluation, summary, pairs, reconciliation, warnings, manifest)

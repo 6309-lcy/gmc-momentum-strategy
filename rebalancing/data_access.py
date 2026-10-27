@@ -42,6 +42,21 @@ def validate_config(config):
         raise ValueError('Fund X requires fixed 20/50/30 benchmark weights')
     if config.get('capital', 500e6) <= 0 or not np.isfinite(config.get('capital', 500e6)):
         raise ValueError('capital must be positive and finite')
+    decay = config.get('risk_ewma_decay', .94)
+    if not isinstance(decay, (int, float)) or isinstance(decay, bool) or not 0 < decay < 1:
+        raise ValueError('risk_ewma_decay must lie strictly between zero and one')
+    for key in ('dynamic_risk_budget', 'loss_drawdown_threshold'):
+        value = config.get(key)
+        if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)) or not np.isfinite(value) or value <= 0):
+            raise ValueError(f'{key} must be null or positive')
+    loss = config.get('loss_drawdown_threshold')
+    factor = config.get('loss_reduction_factor')
+    if loss is not None and loss >= 1:
+        raise ValueError('loss_drawdown_threshold must be below one')
+    if (loss is None) != (factor is None):
+        raise ValueError('Loss threshold and reduction factor must be configured together')
+    if factor is not None and (isinstance(factor, bool) or not isinstance(factor, (int, float)) or not 0 <= factor < 1):
+        raise ValueError('loss_reduction_factor must lie in [0,1)')
     if config['rebalance_frequency'] != 'monthly':
         raise ValueError('Only monthly rebalancing is supported')
 

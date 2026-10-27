@@ -73,6 +73,13 @@ def freeze_policy(config, training):
     validate_prices(training, dates, present)
     policy = {
         'weights': weights.to_dict(), 'risk_weights': risk_weights,
+        'daily_dates': sessions[1:-1].strftime('%Y-%m-%d').tolist(),
+        'weekly_dates': sessions[5:-1:5].strftime('%Y-%m-%d').tolist(),
+        'risk_estimator': {'method': 'EWMA zero-mean second moment, annualized, Ledoit-Wolf initialization',
+                           'decay': config.get('risk_ewma_decay', .94)},
+        'dynamic_risk_budget': config.get('dynamic_risk_budget'),
+        'loss_drawdown_threshold': config.get('loss_drawdown_threshold'),
+        'loss_reduction_factor': config.get('loss_reduction_factor'),
         'sectors': sectors.to_dict(), 'k': k, 'cutoff': config['cutoff'],
         'rebalance_dates': rebalance.strftime('%Y-%m-%d').tolist(),
         'session_dates': sessions.strftime('%Y-%m-%d').tolist(),

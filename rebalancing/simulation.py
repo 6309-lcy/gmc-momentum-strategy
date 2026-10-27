@@ -19,9 +19,31 @@ def joint_indices(n_observations, horizon, n_paths, block_length, seed):
 def strategies(policy):
     original = pd.Series(policy['weights'], dtype=float)
     risk = policy.get('risk_weights')
+    dates = pd.DatetimeIndex(policy['session_dates'])
     return {'P0': (original, []), 'P1': (original, policy['rebalance_dates']),
             'P2': (pd.Series(risk, dtype=float), []) if risk is not None else None,
-            'P3': (pd.Series(risk, dtype=float), policy['rebalance_dates']) if risk is not None else None}
+            'P3': (pd.Series(risk, dtype=float), policy['rebalance_dates']) if risk is not None else None,
+            'P4': (original, policy.get('daily_dates', dates[1:-1].tolist())),
+            'P5': (original, policy.get('weekly_dates', dates[5:-1:5].tolist())),
+            'P6': (original, []) if policy.get('dynamic_risk_budget') is not None else None,
+            'P7': (original, []) if policy.get('loss_drawdown_threshold') is not None else None}
+
+
+def decision_policy(name, policy):
+    if name == 'P6':
+        return {'mode': 'risk', 'threshold': policy['dynamic_risk_budget']}
+    if name == 'P7':
+        return {'mode': 'loss', 'threshold': policy['loss_drawdown_threshold'],
+                'reduction_factor': policy['loss_reduction_factor']}
+    return None
+
+
+def unconfigured_reason(name):
+    if name == 'P6':
+        return 'unconfigured: dynamic risk budget required'
+    if name == 'P7':
+        return 'unconfigured: drawdown threshold and reduction factor required'
+    return 'unconfigured: initial risk budget required'
 
 
 def benchmark_nav(prices, capital):
@@ -56,12 +78,19 @@ def simulate(training, policy, config):
     indices = joint_indices(len(returns), len(dates)-1, policy['n_paths'],
                             policy['block_length'], policy['seed'])
     rows = []
+    from .adaptive import causal_covariances
+    from pathlib import Path
+    configured = {name: spec for name, spec in strategies(policy).items() if spec is not None}
+    path_values = {name: np.full((policy['n_paths'], len(dates), 3), np.nan, dtype=np.float32) for name in configured}
+    stocks = list(policy['weights'])
+    train_stocks = training[stocks]
     kwargs = dict(capital=config['capital'], trading_cost=config['trading_cost'],
                   borrow_rate=config['borrow_rate'], record=False)
     for path, sampled in enumerate(indices):
         levels = np.vstack([np.ones(training.shape[1]),
                             np.cumprod(1 + returns.values[sampled], axis=0)]) * training.iloc[-1].to_numpy()
         prices = pd.DataFrame(levels, index=dates, columns=training.columns)
+        covariances = causal_covariances(train_stocks, prices[stocks], config.get('risk_ewma_decay', .94))
         benchmark = benchmark_nav(prices, config['capital'])
         rows.append({'path': path, 'strategy': 'B0', **path_metrics(benchmark, config['capital']),
                      'turnover': 0., 'transaction_cost': 0., 'borrow_cost': 0., 'status': 'configured'})
@@ -70,7 +99,13 @@ def simulate(training, policy, config):
                 continue
             weights, schedule = specification
             try:
-                result = run_path(prices[weights.index], weights, schedule, **kwargs)
+                result = run_path(prices[weights.index], weights, schedule,
+                                  decision_policy=decision_policy(name, policy),
+                                  risk_covariances=covariances, **kwargs)
+                risk_history = result['risk_history']
+                path_values[name][path, :, 0] = result['nav']['nav'].to_numpy()/config['capital']*100
+                path_values[name][path, :, 1] = risk_history['volatility'].to_numpy()
+                path_values[name][path, :, 2] = risk_history['drawdown'].to_numpy()
                 nav = result['nav']
                 liquidated = nav['nav'].copy()
                 liquidated.iloc[-1] = nav['liquidation_nav'].iloc[-1]
@@ -87,6 +122,23 @@ def simulate(training, policy, config):
                 rows.append({'path': path, 'strategy': name, 'status': 'execution_failed', 'warning': str(exc)})
         if (path + 1) % 1000 == 0:
             print(f'Completed {path+1}/{len(indices)} paired bootstrap scenarios', flush=True)
+    out = Path(config.get('output_dir', 'aligned_method/rebalancing'))
+    out.mkdir(parents=True, exist_ok=True)
+    quantile_rows, example_rows = [], []
+    for name, values in path_values.items():
+        complete = np.isfinite(values).all(axis=(1, 2))
+        # Suppress unconditional bands when any scenario has an undefined financing outcome.
+        bands = np.quantile(values, [.05, .5, .95], axis=0) if complete.all() else np.full((3, len(dates), 3), np.nan)
+        for t, date in enumerate(dates):
+            for m, metric in enumerate(['nav', 'volatility', 'drawdown']):
+                quantile_rows.append({'date': date, 'strategy': name, 'metric': metric,
+                                      'q05': bands[0,t,m], 'q50': bands[1,t,m], 'q95': bands[2,t,m],
+                                      'failed_scenarios': int((~complete).sum())})
+                for path in range(min(20, len(values))):
+                    example_rows.append({'path': path, 'date': date, 'strategy': name, 'metric': metric,
+                                         'value': values[path,t,m]})
+    pd.DataFrame(quantile_rows).to_csv(out/'simulation_path_quantiles.csv', index=False)
+    pd.DataFrame(example_rows).to_csv(out/'simulation_path_examples.csv', index=False)
     samples = pd.DataFrame(rows)
     summary = summarize(samples, policy)
     return samples, summary, {'sample_indices_sha256': hashlib.sha256(indices.tobytes()).hexdigest(),
@@ -96,10 +148,10 @@ def simulate(training, policy, config):
 def summarize(samples, policy):
     benchmark = samples[samples.strategy == 'B0'].set_index('path').net_return
     rows = []
-    for name in ['B0', 'P0', 'P1', 'P2', 'P3']:
+    for name in ['B0', 'P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7']:
         group = samples[samples.strategy == name]
         if group.empty:
-            rows.append({'strategy': name, 'status': 'unconfigured: risk budget required'})
+            rows.append({'strategy': name, 'status': unconfigured_reason(name)})
             continue
         good = group[group.status == 'configured'].set_index('path')
         r = good.net_return
@@ -129,9 +181,11 @@ def paired_comparisons(samples):
     wide = samples[samples.status == 'configured'].pivot(index='path', columns='strategy', values='net_return')
     rows = []
     for title, left, right in [('rebalancing', 'P1', 'P0'), ('initial risk', 'P2', 'P0'),
-                                ('risk portfolio rebalancing', 'P3', 'P2')]:
+                                ('risk portfolio rebalancing', 'P3', 'P2'),
+                                ('daily rebalancing', 'P4', 'P0'), ('weekly rebalancing', 'P5', 'P0'),
+                                ('risk-triggered reduction', 'P6', 'P0'), ('loss-triggered reduction', 'P7', 'P0')]:
         if left not in wide or right not in wide:
-            rows.append({'comparison': title, 'status': 'unconfigured: risk budget required'})
+            rows.append({'comparison': title, 'status': unconfigured_reason(left)})
             continue
         difference = (wide[left] - wide[right]).dropna()
         expected = samples.path.nunique()

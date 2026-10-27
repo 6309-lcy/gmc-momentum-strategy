@@ -14,6 +14,8 @@
 
 - Benchmark pre-cutoff adjusted prices were fetched separately from Yahoo Finance and are archived with hashes. The joint panel combines this source with the original stock training panel. Source revisions and convention differences can affect the result.
 
-- The risk budget is unconfigured by default. P2/P3 remain visible as unconfigured relaxed-exposure variants. The pre-cutoff diagnostics support choosing a budget in a separate prospective research decision.
+- The initial risk budget is unconfigured by default. P2/P3 remain visible as unconfigured relaxed-exposure variants. Dynamic volatility and drawdown triggers P6/P7 also require explicit thresholds and responses. Their supported engines are exercised by tests; configured production strategies are reported consistently.
+
+- Daily and five-session policies use previous-close information. Evolving EWMA risk is estimated from each path independently with pre-cutoff covariance initialization; the 0.94 decay is a declared assumption. Price and risk bands summarize pointwise scenario distributions.
 
 - The 2026 evaluation period has been explored before this implementation. This is a historical diagnostic comparison, with illustrative costs and financing constraints.
