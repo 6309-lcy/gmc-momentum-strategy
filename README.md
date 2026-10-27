@@ -120,7 +120,7 @@ Execution uses an **idealized adjusted-close diagnostic** with preceding-close s
 
 ## 獨立避險研究（hedging 分支）
 
-[GMC_Hedging_Analysis.ipynb](GMC_Hedging_Analysis.ipynb) 與 [HEDGING_DESIGN.md](HEDGING_DESIGN.md) 將避險任務獨立管理。原股票帳戶保留 5 億美元配置；新增 2 億美元在 SGOV 儲備與 SH 反向 ETF 之間，依只使用過去資訊的雙狀態風險模型切換。帳戶不交易期權，SH 基金內使用衍生工具。模型、工具及門檻屬回顧性探索研究假設。
+[GMC_Hedging_Analysis.ipynb](GMC_Hedging_Analysis.ipynb) 與 [HEDGING_DESIGN.md](HEDGING_DESIGN.md) 將避險任務獨立管理。原股票帳戶保留 5 億美元與原始目標權重，執行每月、每日及每五個交易日再平衡，並保留買入持有對照；每種頻率均搭配新增 2 億美元帳戶的國債儲備、持續避險及風險驅動避險，共 12 組。SGOV 儲備與 SH 反向 ETF 的切換依只使用過去資訊的雙狀態風險模型決定。帳戶不交易期權，SH 基金內使用衍生工具。模型、工具及門檻屬回顧性探索研究假設。
 
 執行 `python run_hedging.py` 重建 10,000 個共同情境、歷史診斷、帳戶明細與圖表。結果存於 [aligned_method/hedging/report.md](aligned_method/hedging/report.md)。此任務不修改原再平衡策略或其輸出。
 

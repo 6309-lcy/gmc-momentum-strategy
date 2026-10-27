@@ -1,7 +1,12 @@
 {
   "stock_capital": 500000000,
   "overlay_capital": 200000000,
-  "stock_policy": "buy_and_hold",
+  "stock_policy": [
+    "buy_and_hold",
+    "monthly",
+    "daily",
+    "every_five_sessions"
+  ],
   "cutoff": "2026-04-28",
   "evaluation_start": "2026-05-01",
   "evaluation_end": "2026-08-03",

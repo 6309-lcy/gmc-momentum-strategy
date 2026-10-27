@@ -20,28 +20,43 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def stock_schedules(dates):
+    dates=pd.DatetimeIndex(dates)
+    monthly=dates.to_series().groupby(dates.to_period('M')).first().tolist()[1:]
+    return {'BH':[], 'M':[d for d in monthly if d<dates[-1]],
+            'D':dates[1:-1].tolist(), 'W':dates[5:-1:5].tolist()}
+
+
 def evaluate_path(prices,weights,model,config,record=False):
-    stock=run_path(prices[weights.index],weights,[],capital=config['stock_capital'],
-                   trading_cost=config['trading_cost'],borrow_rate=config['stock_borrow_rate'],record=record)
+    stocks={name:run_path(prices[weights.index],weights,schedule,capital=config['stock_capital'],
+                         trading_cost=config['trading_cost'],borrow_rate=config['stock_borrow_rate'],record=record)
+            for name,schedule in stock_schedules(prices.index).items()}
     signals=filter_states(prices,model,weights)
+    overlays={name:run_overlay(prices,signals,model,capital=config['overlay_capital'],
+                              stock_capital=config['stock_capital'],trading_cost=config['trading_cost'],
+                              cash_buffer=config['cash_buffer'],mode=mode,on_insufficient_cash='reject')
+              for name,mode in MODES.items()}
     results={}
     total=config['stock_capital']+config['overlay_capital']
     benchmark=benchmark_nav(prices,total)
-    for name,mode in MODES.items():
-        overlay=run_overlay(prices,signals,model,capital=config['overlay_capital'],
-                            stock_capital=config['stock_capital'],trading_cost=config['trading_cost'],
-                            cash_buffer=config['cash_buffer'],mode=mode,on_insufficient_cash='reject')
-        nav=stock['nav'].nav+overlay['nav'].nav
-        liquidated=nav.copy()
-        liquidated.iloc[-1]=stock['nav'].liquidation_nav.iloc[-1]+overlay['nav'].liquidation_nav.iloc[-1]
-        stats=path_metrics(liquidated,total,benchmark)
-        stats.update(rejected_orders=len(overlay['rejections']),overlay_return=overlay['nav'].liquidation_nav.iloc[-1]/config['overlay_capital']-1,
-                     stock_net_return=stock['nav'].liquidation_nav.iloc[-1]/config['stock_capital']-1,
-                     overlay_transaction_cost=overlay['nav'].transaction_cost.sum(),
-                     overlay_terminal_cost=overlay['nav'].nav.iloc[-1]-overlay['nav'].liquidation_nav.iloc[-1],
-                     hedge_active_fraction=float((overlay['nav'].sh_value>0).mean()))
-        results[name]={'metrics':stats,'combined_nav':nav,'performance_nav':liquidated,'overlay':overlay}
-    return results,stock,signals
+    for frequency,stock in stocks.items():
+        for hedge,overlay in overlays.items():
+            name=f'{frequency}_{hedge}'
+            nav=stock['nav'].nav+overlay['nav'].nav
+            liquidated=nav.copy()
+            liquidated.iloc[-1]=stock['nav'].liquidation_nav.iloc[-1]+overlay['nav'].liquidation_nav.iloc[-1]
+            stats=path_metrics(liquidated,total,benchmark)
+            stats.update(rejected_orders=len(overlay['rejections']),
+                         overlay_return=overlay['nav'].liquidation_nav.iloc[-1]/config['overlay_capital']-1,
+                         stock_net_return=stock['nav'].liquidation_nav.iloc[-1]/config['stock_capital']-1,
+                         stock_transaction_cost=stock['nav'].transaction_cost.sum(),
+                         stock_borrow_cost=stock['nav'].borrow_cost.sum(),
+                         overlay_transaction_cost=overlay['nav'].transaction_cost.sum(),
+                         overlay_terminal_cost=overlay['nav'].nav.iloc[-1]-overlay['nav'].liquidation_nav.iloc[-1],
+                         hedge_active_fraction=float((overlay['nav'].sh_value>0).mean()))
+            results[name]={'metrics':stats,'combined_nav':nav,'performance_nav':liquidated,
+                           'overlay':overlay,'stock':stock,'stock_policy':frequency}
+    return results,stocks,signals
 
 
 def main():
@@ -49,15 +64,16 @@ def main():
     config=json.loads(Path('hedging/config.json').read_text())
     out=Path('aligned_method/hedging'); out.mkdir(parents=True,exist_ok=True)
     weights=pd.read_csv('aligned_method/validated_strategy/frozen_weights.csv',index_col=0).weight
+    import exchange_calendars as xcals
+    dates=xcals.get_calendar('XNYS').sessions_in_range(config['evaluation_start'],config['evaluation_end']).tz_localize(None)
     training=load_joint('training')
     model=fit_model(training,weights,decay=config['decay'])
     frozen={'config':config,'model':model,'weights':weights.to_dict(),
             'training_sha256':digest('data/hedging/training_instruments.csv'),
-            'stock_weights_sha256':digest('aligned_method/validated_strategy/frozen_weights.csv')}
+            'stock_weights_sha256':digest('aligned_method/validated_strategy/frozen_weights.csv'),
+            'stock_schedules':{k:[str(d) for d in v] for k,v in stock_schedules(dates).items()}}
     (out/'frozen_policy.json').write_text(json.dumps(frozen,indent=2),encoding='utf-8')
     frozen_hash=digest(out/'frozen_policy.json')
-    import exchange_calendars as xcals
-    dates=xcals.get_calendar('XNYS').sessions_in_range(config['evaluation_start'],config['evaluation_end']).tz_localize(None)
     returns=training.pct_change(fill_method=None).iloc[1:]
     indices=joint_indices(len(returns),len(dates)-1,config['n_paths'],config['block_length'],config['seed'])
     rows=[]; examples=[]
@@ -82,34 +98,41 @@ def main():
                         'mean_overlay_cost':g.overlay_transaction_cost.mean(),'mean_rejected_orders':g.rejected_orders.mean(),'mean_hedge_fraction':g.hedge_active_fraction.mean()})
     summary=pd.DataFrame(summary); summary.to_csv(out/'simulation_summary.csv',index=False)
     pairs=[]; wide=samples.pivot(index='path',columns='strategy',values='net_return')
-    for name in ['H1','H2']:
-        delta=wide[name]-wide.H0
-        pairs.append({'comparison':name+' minus H0','mean_difference':delta.mean(),'p05':delta.quantile(.05),
+    comparisons=[(f'{f}_{h}',f'{f}_H0') for f in ['BH','M','D','W'] for h in ['H1','H2']]
+    comparisons += [(f'{f}_{h}',f'BH_{h}') for f in ['M','D','W'] for h in ['H0','H2']]
+    for name,baseline in comparisons:
+        delta=wide[name]-wide[baseline]
+        pairs.append({'comparison':name+' minus '+baseline,'mean_difference':delta.mean(),'p05':delta.quantile(.05),
                       'p95':delta.quantile(.95),'positive_frequency':(delta>0).mean()})
     pd.DataFrame(pairs).to_csv(out/'paired_comparisons.csv',index=False)
     pd.DataFrame(examples).to_csv(out/'simulation_examples.csv',index=False)
     assert digest(out/'frozen_policy.json')==frozen_hash
     prices=load_joint('evaluation')
-    result,stock,signals=evaluate_path(prices,weights,model,config,record=True)
-    actual=[]; navs=[]; overlays=[]; trades=[]; rejections=[]
+    result,stocks,signals=evaluate_path(prices,weights,model,config,record=True)
+    actual=[]; navs=[]; overlays=[]; trades=[]; rejections=[]; orders=[]
     for name,value in result.items():
+        stock=value['stock']
         r=value['metrics']; distribution=samples.loc[samples.strategy==name,'net_return']
-        actual.append({'strategy':name,**r,'simulation_percentile':(distribution<=r['net_return']).mean()*100})
-        navs.append(pd.DataFrame({'date':dates,'strategy':name,'combined_nav':value['combined_nav'].values,'performance_nav':value['performance_nav'].values,
+        actual.append({'strategy':name,'stock_policy':value['stock_policy'],**r,'simulation_percentile':(distribution<=r['net_return']).mean()*100})
+        navs.append(pd.DataFrame({'date':dates,'strategy':name,'stock_policy':value['stock_policy'],'combined_nav':value['combined_nav'].values,'performance_nav':value['performance_nav'].values,
                                   'stock_nav':stock['nav'].nav.values,'overlay_nav':value['overlay']['nav'].nav.values}))
         overlays.append(value['overlay']['nav'].rename_axis('date').reset_index().assign(strategy=name))
-        trades.append(value['overlay']['trades'].assign(strategy=name))
+        trades.append(value['overlay']['trades'].assign(strategy=name,account='overlay'))
+        trades.append(stock['trades'].assign(strategy=name,account='stock'))
+        orders.append(value['overlay']['orders'].assign(strategy=name,account='overlay'))
+        orders.append(stock['orders'].assign(strategy=name,account='stock'))
         rejections.append(value['overlay']['rejections'].assign(strategy=name))
     actual=pd.DataFrame(actual); actual.to_csv(out/'actual_metrics.csv',index=False)
     pd.concat(navs).to_csv(out/'daily_nav.csv',index=False)
     pd.concat(overlays).to_csv(out/'overlay_accounts.csv',index=False)
     pd.concat(trades).to_csv(out/'trades.csv',index=False)
     pd.concat(rejections).to_csv(out/'rejections.csv',index=False)
+    pd.concat(orders).to_csv(out/'orders.csv',index=False)
     signals.to_csv(out/'signals.csv')
-    stock['nav'].to_csv(out/'stock_nav.csv')
+    pd.concat([v['nav'].rename_axis('date').reset_index().assign(stock_policy=k) for k,v in stocks.items()]).to_csv(out/'stock_nav.csv',index=False)
     from hedging.reporting import write_report
     write_report(out,config,model,actual,summary,pd.DataFrame(pairs))
-    files=list(Path('hedging').glob('*.py'))+[Path('run_hedging.py')]
+    files=list(Path('hedging').glob('*.py'))+[Path('run_hedging.py'),Path('rebalancing/accounting.py'),Path('rebalancing/simulation.py')]
     data=[Path('data/hedging/training_instruments.csv'),Path('data/hedging/evaluation_instruments.csv'),
           Path('data/rebalancing_training.csv'),Path('aligned_method/validated_strategy/diagnostic_prices.csv')]
     manifest={'code_revision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
