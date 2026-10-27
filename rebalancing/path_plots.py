@@ -11,6 +11,7 @@ import pandas as pd
 
 from .risk_model import complete_returns, covariance
 from .simulation import joint_indices
+from .event_markers import add_event_flags, scheduled_events
 
 
 NOTE = ('Shading: per-date 5th–95th percentiles; solid line: per-date median. '
@@ -113,7 +114,7 @@ def _asset_figure(frame, examples, tickers, out, metric):
     _save(fig, out, 'asset_risk_simulation' if risk else 'asset_price_simulation')
 
 
-def _portfolio_figure(out):
+def _portfolio_figure(out, policy=None):
     quantile_file = out / 'simulation_path_quantiles.csv'
     example_file = out / 'simulation_path_examples.csv'
     quantiles = pd.read_csv(quantile_file, parse_dates=['date']) if quantile_file.exists() else None
@@ -129,15 +130,21 @@ def _portfolio_figure(out):
                      .sort_values('date') if quantiles is not None else pd.DataFrame())
             if not group.empty:
                 _fan(ax, pd.DatetimeIndex(group.date), group, ['q05', 'q50', 'q95'], label, color)
+                if policy is not None:
+                    add_event_flags(ax, group.date, group.q50, scheduled_events(policy, strategy), color,
+                                    gid=f'{metric}-{strategy}-median-rebalance-flags')
                 available = True
             else:
                 missing.append(strategy)
             if examples is not None:
                 selected = examples[(examples.strategy == strategy) &
                                     (examples.metric == metric) & examples.path.isin(range(5))]
-                for _, path in selected.groupby('path'):
+                for path_id, path in selected.groupby('path'):
                     path = path.sort_values('date')
                     ax.plot(path.date, path.value, color=color, linewidth=.65, alpha=.35)
+                    if policy is not None:
+                        add_event_flags(ax, path.date, path.value, scheduled_events(policy, strategy), color,
+                                        gid=f'{metric}-{strategy}-path-{path_id}-rebalance-flags')
         ax.set(ylabel=title)
         if metric != 'nav':
             ax.yaxis.set_major_formatter(PercentFormatter(1))
@@ -147,7 +154,7 @@ def _portfolio_figure(out):
             ax.text(.01, .02, 'Saved quantiles unavailable: ' + ', '.join(missing),
                     transform=ax.transAxes, fontsize=9)
         _date_axis(ax)
-    fig.suptitle('Joint-bootstrap portfolio paths | net accounting summaries')
+    fig.suptitle('Joint-bootstrap portfolio paths | flags = scheduled rebalance executions')
     fig.text(.5, .015, NOTE, ha='center', fontsize=9)
     fig.tight_layout(rect=(0, .065, 1, .96))
     figures = out/'figures'
@@ -174,5 +181,5 @@ def write_path_plots(training, policy, config, out):
     figures.mkdir(exist_ok=True)
     _asset_figure(frame, prices, tickers, figures, 'price')
     _asset_figure(frame, volatility, tickers, figures, 'volatility')
-    _portfolio_figure(out)
+    _portfolio_figure(out, policy)
     return frame

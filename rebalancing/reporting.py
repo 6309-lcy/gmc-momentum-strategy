@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
+from .event_markers import add_event_flags
 
 
 def sha256(path):
@@ -28,7 +29,13 @@ def write_report(out, config, policy, evaluation, summary, pairs, reconciliation
     figure_dir.mkdir(exist_ok=True)
     fig, ax = plt.subplots(figsize=(10, 5))
     for name, group in evaluation['daily_nav'].groupby('strategy'):
-        ax.plot(pd.to_datetime(group.date), group.nav/config['capital']*100, label=name)
+        line, = ax.plot(pd.to_datetime(group.date), group.nav/config['capital']*100, label=name)
+        trades = evaluation['trades']
+        events = trades.loc[(trades.strategy == name) & ~trades.hypothetical.astype(bool)
+                            & ~trades.kind.isin(['initial_close_diagnostic', 'liquidation'])
+                            & trades.quantity.ne(0), 'date'].unique()
+        add_event_flags(ax, group.date, group.nav/config['capital']*100, events, line.get_color(),
+                        gid=f'{name}-actual-rebalance-flags')
     ax.set(title='Historical adjusted-close diagnostic | marked-to-market NAV', ylabel='NAV (initial equity = 100)')
     ax.legend(); ax.grid(alpha=.2); fig.autofmt_xdate(); fig.tight_layout()
     fig.savefig(figure_dir/'historical_nav.svg', metadata={'Date': None})
@@ -48,6 +55,8 @@ Primary net returns include entry, actual rebalance trades, daily outstanding-sh
 {evaluation['actual_metrics'].to_markdown(index=False, floatfmt='.6f')}
 
 ![Historical NAV](figures/historical_nav.svg)
+
+Flag symbols identify actual nonzero rebalance fills on each historical portfolio line. Initial entry and terminal liquidation have no flags. Buy-and-hold lines have no flags. Simulation flags mark frozen scheduled rebalance execution dates on the median and each displayed example path; median curves are pointwise summaries. Asset price/volatility panels describe the common market and carry no portfolio-specific event flags.
 
 P2 and P3 are relaxed-exposure variants. Their default status is unconfigured because no independently justified volatility budget has been supplied. The pipeline supports a positive predeclared `risk_budget` in the configuration; it freezes the scale before simulation and historical replay. All nine predefined strategy IDs remain visible in the output tables. P4 rebalances daily using the preceding close; P5 rebalances after each five completed observations (first fill at observation 6, then 11, 16, and so on). P6 checks previous-close estimated portfolio volatility against `dynamic_risk_budget` and ratchets target exposure downward; P7 reduces exposure once after previous-close drawdown breaches `loss_drawdown_threshold`, using `loss_reduction_factor`, with no re-entry. P6/P7 remain unconfigured until their respective thresholds and responses are explicitly set before evaluation.
 

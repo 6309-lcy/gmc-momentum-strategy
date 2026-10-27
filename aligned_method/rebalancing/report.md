@@ -22,6 +22,8 @@ Primary net returns include entry, actual rebalance trades, daily outstanding-sh
 
 ![Historical NAV](figures/historical_nav.svg)
 
+Flag symbols identify actual nonzero rebalance fills on each historical portfolio line. Initial entry and terminal liquidation have no flags. Buy-and-hold lines have no flags. Simulation flags mark frozen scheduled rebalance execution dates on the median and each displayed example path; median curves are pointwise summaries. Asset price/volatility panels describe the common market and carry no portfolio-specific event flags.
+
 P2 and P3 are relaxed-exposure variants. Their default status is unconfigured because no independently justified volatility budget has been supplied. The pipeline supports a positive predeclared `risk_budget` in the configuration; it freezes the scale before simulation and historical replay. All nine predefined strategy IDs remain visible in the output tables. P4 rebalances daily using the preceding close; P5 rebalances after each five completed observations (first fill at observation 6, then 11, 16, and so on). P6 checks previous-close estimated portfolio volatility against `dynamic_risk_budget` and ratchets target exposure downward; P7 reduces exposure once after previous-close drawdown breaches `loss_drawdown_threshold`, using `loss_reduction_factor`, with no re-entry. P6/P7 remain unconfigured until their respective thresholds and responses are explicitly set before evaluation.
 
 ## Paired historical-bootstrap scenarios

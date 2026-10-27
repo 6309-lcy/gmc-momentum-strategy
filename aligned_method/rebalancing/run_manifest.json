@@ -49,10 +49,11 @@
     "rebalancing\\adaptive.py": "f0c2aee3ed0a3a373e177120d2fd9f7abc26cad67a8a61a988df452a4783f880",
     "rebalancing\\data_access.py": "d721502ad3cd5f36c2870ca78713b11e06c1c4b5dbd2efedf38c5560603ff8d7",
     "rebalancing\\evaluation.py": "0ffa8a8e43a8675d432b5fdb045b8e14590b94347979fd07116a872e90a793c0",
+    "rebalancing\\event_markers.py": "c14c6f6c4ab68c9e9cfe8e71541da22ef4cdb732434754b8c8a22b9d6afc36cc",
     "rebalancing\\execution.py": "b9844c6ef9c91f4fa7457c67f29190347a8d3a237c4a619db3432a43dc132881",
-    "rebalancing\\path_plots.py": "2c9024151f846e9375bc06967942364f1ef639d3efdca1ae03f5529b87e0cbb4",
+    "rebalancing\\path_plots.py": "c50612d8f7be2564a40ef3c64c08a1decaf25072a30f97a5a88bf7a4a83711d5",
     "rebalancing\\policies.py": "60092951175596c631d3eb3cb636c2105e4f6db7609331d07e82cb60a7bf560d",
-    "rebalancing\\reporting.py": "9f1b4f488c251c3c37f149ded31c9f8fe483e00937aabe8021e04639299dc8cb",
+    "rebalancing\\reporting.py": "8bff2a321ebdbf69d158c01bc4049cbf65e32284d3567991d76e8fc447ce6ee8",
     "rebalancing\\risk_model.py": "c8e04b66f732585d41d5847ccd6bf452b58f1d5735698c89b5a5f2667873fb34",
     "rebalancing\\simulation.py": "52350477494c60be724db3ab107051983cf03f3062faca46a6a4ea5002b20973",
     "run_rebalancing.py": "696a5600b3fe95bf763123be825a5bf8a681d41b9e255ad4ab1c14378d98ecf8"
@@ -69,5 +70,6 @@
   "random_seed": 20260428,
   "execution": "idealized adjusted-close fills; preceding close policy decisions and sizing; fractional synthetic initial units",
   "sample_indices_sha256": "5202c77c93a4cae6222d4c0ea6341406d0cf68f7644c1faa0467e88c8578a24e",
-  "training_return_observations": 500
+  "training_return_observations": 500,
+  "plot_update_note": "Rebalance event flags added using saved simulation and historical accounting; scenario results unchanged."
 }
